@@ -1,30 +1,12 @@
 # RankStream Frontend
 
-네트워크 마케팅 회사를 위한 종합 솔루션 RankStream의 랜딩 페이지 프론트엔드 저장소입니다.
+본 프로젝트는 다단계 판매사의 회원 트리 및 주문 실적을 연동하고 실적과 등급에 따른 포인트를 환급하는 시스템을 만들기 위한 토이 프로젝트입니다.
+본 저장소는 랜딩페이지입니다.
+계속 개발이 진행 중인 프로젝트이므로 본 문서 및 저장소의 내용은 수시로 바뀔 수 있습니다.
 
-## 기술 스택
+## Development Env
 
-- Vue 3 (Composition API)
-- TypeScript
-- Vite
-- Tailwind CSS
-- Vue Router
-
-## 시작하기
-
-### 개발 환경 실행
-
-```bash
-# 의존성 설치
-npm install
-
-# 개발 서버 시작
-npm run dev
-```
-
-### 프로덕션 빌드
-
-```bash
-npm run build
-```
-
+* Lang: TypeScript
+* Framework: Vue3
+* UI, Design: Tailwind CSS
+* First Composed By: Cursor AI
