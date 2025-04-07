@@ -1,6 +1,7 @@
 <script lang='ts' setup>
 import {ref} from 'vue'
 
+
 interface SignupForm {
     email: string
     password: string
@@ -9,6 +10,9 @@ interface SignupForm {
     businessType: 'individual' | 'corporate'
     phoneNumber: string
     address: string
+    companyName?: string
+    companyAddress?: string
+    companyPhone?: string
 }
 
 const form = ref<SignupForm>({
@@ -46,6 +50,22 @@ const validateForm = () => {
         newErrors.businessNumber = '사업자등록번호는 필수입니다'
     } else if (!/^\d{10}$/.test(form.value.businessNumber)) {
         newErrors.businessNumber = '사업자등록번호는 10자리 숫자여야 합니다'
+    }
+
+    if (form.value.businessType === 'corporate') {
+        if (!form.value.companyName) {
+            newErrors.companyName = '회사명은 필수입니다'
+        }
+
+        if (!form.value.companyAddress) {
+            newErrors.companyAddress = '회사 주소는 필수입니다'
+        }
+
+        if (!form.value.companyPhone) {
+            newErrors.companyPhone = '회사 전화번호는 필수입니다'
+        } else if (!/^\d{2,3}-\d{3,4}-\d{4}$/.test(form.value.companyPhone)) {
+            newErrors.companyPhone = '올바른 전화번호 형식을 입력해주세요'
+        }
     }
 
     errors.value = newErrors
@@ -138,24 +158,64 @@ const handleSubmit = () => {
                     </div>
                 </div>
 
-                <div class="space-y-1">
-                    <label class="block font-medium" for="phoneNumber">전화번호 (선택)</label>
-                    <input
-                        id="phoneNumber"
-                        v-model="form.phoneNumber"
-                        class="w-full p-2 border rounded"
-                        type="tel"
-                    >
+                <div v-if="form.businessType === 'corporate'" class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="companyName">회사명 *</label>
+                        <input
+                            id="companyName"
+                            v-model="form.companyName"
+                            :class="{ 'border-red-500': errors.companyName }"
+                            class="w-full p-2 border rounded"
+                            type="text"
+                        >
+                        <p v-if="errors.companyName" class="text-sm text-red-500">{{ errors.companyName }}</p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="companyAddress">회사주소 *</label>
+                        <textarea
+                            id="companyAddress"
+                            v-model="form.companyAddress"
+                            :class="{ 'border-red-500': errors.companyAddress }"
+                            class="w-full p-2 border rounded"
+                            rows="2"
+                        ></textarea>
+                        <p v-if="errors.companyAddress" class="text-sm text-red-500">{{ errors.companyAddress }}</p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="companyPhone">회사 대표 전화번호 *</label>
+                        <input
+                            id="companyPhone"
+                            v-model="form.companyPhone"
+                            :class="{ 'border-red-500': errors.companyPhone }"
+                            class="w-full p-2 border rounded"
+                            type="tel"
+                        >
+                        <p v-if="errors.companyPhone" class="text-sm text-red-500">{{ errors.companyPhone }}</p>
+                    </div>
                 </div>
 
-                <div class="space-y-1">
-                    <label class="block font-medium" for="address">주소 (선택)</label>
-                    <textarea
-                        id="address"
-                        v-model="form.address"
-                        class="w-full p-2 border rounded"
-                        rows="2"
-                    ></textarea>
+                <div v-else class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="phoneNumber">전화번호 (선택)</label>
+                        <input
+                            id="phoneNumber"
+                            v-model="form.phoneNumber"
+                            class="w-full p-2 border rounded"
+                            type="tel"
+                        >
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="address">주소 (선택)</label>
+                        <textarea
+                            id="address"
+                            v-model="form.address"
+                            class="w-full p-2 border rounded"
+                            rows="2"
+                        ></textarea>
+                    </div>
                 </div>
 
                 <button

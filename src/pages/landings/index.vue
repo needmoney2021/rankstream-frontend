@@ -41,8 +41,7 @@
                 </div>
 
                 <div class="mt-12">
-                    <router-link class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg"
-                                 to="/signup">
+                    <router-link class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg" to="/signup">
                         지금 시작하기
                     </router-link>
                 </div>
