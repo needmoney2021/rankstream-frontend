@@ -1,31 +1,46 @@
 <script lang='ts' setup>
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
+import {useRouter} from "vue-router";
 
 
 interface SignupForm {
     email: string
     password: string
     passwordConfirm: string
-    businessNumber: string
-    businessType: 'individual' | 'corporate'
+    businessLicense: string
+    businessType: 'INDIVIDUAL' | 'CORPORATION'
     phoneNumber: string
-    address: string
+    postalCode?: string
+    address?: string
+    addressDetail?: string
+    name?: string
     companyName?: string
+    representative?: string
+    companyPostalCode?: string
     companyAddress?: string
+    companyAddressDetail?: string
     companyPhone?: string
 }
+
+const router = useRouter()
 
 const form = ref<SignupForm>({
     email: '',
     password: '',
     passwordConfirm: '',
-    businessNumber: '',
-    businessType: 'individual',
+    businessLicense: '',
+    businessType: 'INDIVIDUAL',
     phoneNumber: '',
     address: ''
 })
 
 const errors = ref<Record<string, string>>({})
+
+const isFetching = ref(false)
+
+watch(() => form.value.businessType, () => {
+    errors.value = {}
+})
 
 const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -46,25 +61,39 @@ const validateForm = () => {
         newErrors.passwordConfirm = '비밀번호가 일치하지 않습니다'
     }
 
-    if (!form.value.businessNumber) {
-        newErrors.businessNumber = '사업자등록번호는 필수입니다'
-    } else if (!/^\d{10}$/.test(form.value.businessNumber)) {
-        newErrors.businessNumber = '사업자등록번호는 10자리 숫자여야 합니다'
+    if (!form.value.businessLicense) {
+        newErrors.businessLicense = '사업자등록번호는 필수입니다'
     }
 
-    if (form.value.businessType === 'corporate') {
+    if (form.value.businessType === 'CORPORATION') {
         if (!form.value.companyName) {
             newErrors.companyName = '회사명은 필수입니다'
+        }
+
+        if (!form.value.companyPostalCode) {
+            newErrors.companyPostalCode = '회사 주소는 필수입니다'
         }
 
         if (!form.value.companyAddress) {
             newErrors.companyAddress = '회사 주소는 필수입니다'
         }
 
+        if (!form.value.companyAddressDetail) {
+            newErrors.companyAddressDetail = '회사 주소는 필수입니다'
+        }
+
+        if (!form.value.representative) {
+            newErrors.representative = '대표자명은 필수입니다'
+        }
+
         if (!form.value.companyPhone) {
             newErrors.companyPhone = '회사 전화번호는 필수입니다'
-        } else if (!/^\d{2,3}-\d{3,4}-\d{4}$/.test(form.value.companyPhone)) {
+        } else if (!/^010-\d{4}-\d{4}$/.test(form.value.companyPhone)) {
             newErrors.companyPhone = '올바른 전화번호 형식을 입력해주세요'
+        }
+    } else {
+        if (!form.value.name) {
+            newErrors.name = '사업자명은 필수입니다'
         }
     }
 
@@ -72,10 +101,46 @@ const validateForm = () => {
     return Object.keys(newErrors).length === 0
 }
 
-const handleSubmit = () => {
+const getCsrfToken = async (): Promise<string | null> => {
+    await fetch(`${import.meta.env.VITE_API_BASE}/csrf`, {
+        credentials: 'include'
+    })
+
+    const cookie = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='))
+
+    return cookie?.split('=')[1] || null
+}
+
+const handleSubmit = async () => {
     if (validateForm()) {
-        // Form submission logic would go here
-        alert('회원가입이 요청되었습니다. 관리자 승인 후 이용 가능합니다.')
+        isFetching.value = true // 요청 중 로딩 상태 관리
+        try {
+
+            const csrfToken = await getCsrfToken()
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE}/signup`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-XSRF-TOKEN": csrfToken || ""
+                },
+                credentials: 'include',
+                body: JSON.stringify(form.value),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                alert(`회원가입 실패: ${errorData.message || "알 수 없는 오류입니다."}`)
+                return
+            }
+
+            alert("회원가입이 요청되었습니다. 관리자 승인 후 이용 가능합니다.")
+            await router.push("/")
+        } catch (error) {
+            alert('회원가입 요청 중 오류가 발생했습니다.')
+        } finally {
+            isFetching.value = false // 요청 완료 후 로딩 상태 해제
+        }
     }
 }
 </script>
@@ -135,30 +200,30 @@ const handleSubmit = () => {
                     <label class="block font-medium" for="businessNumber">사업자등록번호 *</label>
                     <input
                         id="businessNumber"
-                        v-model="form.businessNumber"
-                        :class="{ 'border-red-500': errors.businessNumber }"
+                        v-model="form.businessLicense"
+                        :class="{ 'border-red-500': errors.businessLicense }"
                         class="w-full p-2 border rounded"
                         placeholder="숫자만 입력 (하이픈 제외)"
                         type="text"
                     >
-                    <p v-if="errors.businessNumber" class="text-sm text-red-500">{{ errors.businessNumber }}</p>
+                    <p v-if="errors.businessLicense" class="text-sm text-red-500">{{ errors.businessLicense }}</p>
                 </div>
 
                 <div class="space-y-1">
                     <label class="block font-medium">사업자 구분 *</label>
                     <div class="flex gap-4">
                         <label class="inline-flex items-center">
-                            <input v-model="form.businessType" class="mr-2" type="radio" value="individual">
+                            <input v-model="form.businessType" class="mr-2" type="radio" value="INDIVIDUAL">
                             개인
                         </label>
                         <label class="inline-flex items-center">
-                            <input v-model="form.businessType" class="mr-2" type="radio" value="corporate">
+                            <input v-model="form.businessType" class="mr-2" type="radio" value="CORPORATION">
                             법인
                         </label>
                     </div>
                 </div>
 
-                <div v-if="form.businessType === 'corporate'" class="space-y-4">
+                <div v-if="form.businessType === 'CORPORATION'" class="space-y-4">
                     <div class="space-y-1">
                         <label class="block font-medium" for="companyName">회사명 *</label>
                         <input
@@ -172,15 +237,58 @@ const handleSubmit = () => {
                     </div>
 
                     <div class="space-y-1">
-                        <label class="block font-medium" for="companyAddress">회사주소 *</label>
-                        <textarea
-                            id="companyAddress"
-                            v-model="form.companyAddress"
-                            :class="{ 'border-red-500': errors.companyAddress }"
+                        <label class="block font-medium" for="businessNumber">대표자명 *</label>
+                        <input
+                            id="representative"
+                            v-model="form.representative"
+                            :class="{ 'border-red-500': errors.representative }"
                             class="w-full p-2 border rounded"
-                            rows="2"
-                        ></textarea>
-                        <p v-if="errors.companyAddress" class="text-sm text-red-500">{{ errors.companyAddress }}</p>
+                            type="text"
+                        >
+                        <p v-if="errors.representative" class="text-sm text-red-500">{{ errors.representative }}</p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="companyAddress">회사주소 *</label>
+
+
+                        <div class="space-y-1">
+                            <label class="block font-medium" for="postalCode">우편번호 *</label>
+                            <input
+                                id="postalCode"
+                                v-model="form.companyPostalCode"
+                                :class="{ 'border-red-500': errors.companyPostalCode }"
+                                class="w-full p-2 border rounded"
+                                type="text"
+                            >
+                            <p v-if="errors.companyPostalCode" class="text-sm text-red-500">{{ errors.companyPostalCode }}</p>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block font-medium" for="address">주소 *</label>
+                            <input
+                                id="address"
+                                v-model="form.companyAddress"
+                                :class="{ 'border-red-500': errors.companyAddress }"
+                                class="w-full p-2 border rounded"
+                                type="text"
+                            >
+                            <p v-if="errors.companyAddress" class="text-sm text-red-500">{{ errors.companyAddress }}</p>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block font-medium" for="addressDetail">상세 주소 *</label>
+                            <input
+                                id="addressDetail"
+                                v-model="form.companyAddressDetail"
+                                :class="{ 'border-red-500': errors.companyAddressDetail }"
+                                class="w-full p-2 border rounded"
+                                type="text"
+                            >
+                            <p v-if="errors.companyAddressDetail" class="text-sm text-red-500">{{ errors.companyAddressDetail }}</p>
+                        </div>
+
+                        <p v-if="errors.companyAddressDetail" class="text-sm text-red-500">{{ errors.companyAddressDetail }}</p>
                     </div>
 
                     <div class="space-y-1">
@@ -190,6 +298,7 @@ const handleSubmit = () => {
                             v-model="form.companyPhone"
                             :class="{ 'border-red-500': errors.companyPhone }"
                             class="w-full p-2 border rounded"
+                            placeholder="010-1234-5678"
                             type="tel"
                         >
                         <p v-if="errors.companyPhone" class="text-sm text-red-500">{{ errors.companyPhone }}</p>
@@ -197,33 +306,82 @@ const handleSubmit = () => {
                 </div>
 
                 <div v-else class="space-y-4">
+
+                    <div class="space-y-1">
+                        <label class="block font-medium" for="businessNumber">사업자명 *</label>
+                        <input
+                            id="name"
+                            v-model="form.name"
+                            :class="{ 'border-red-500': errors.name }"
+                            class="w-full p-2 border rounded"
+                            type="text"
+                        >
+                        <p v-if="errors.name" class="text-sm text-red-500">{{ errors.name }}</p>
+                    </div>
+
                     <div class="space-y-1">
                         <label class="block font-medium" for="phoneNumber">전화번호 (선택)</label>
                         <input
                             id="phoneNumber"
                             v-model="form.phoneNumber"
                             class="w-full p-2 border rounded"
+                            placeholder="010-1234-5678"
                             type="tel"
                         >
                     </div>
 
                     <div class="space-y-1">
-                        <label class="block font-medium" for="address">주소 (선택)</label>
-                        <textarea
-                            id="address"
-                            v-model="form.address"
-                            class="w-full p-2 border rounded"
-                            rows="2"
-                        ></textarea>
+                        <div class="space-y-4">
+                            <div class="space-y-1">
+                                <label class="block font-medium" for="postalCode">우편번호 (선택)</label>
+                                <input
+                                    id="postalCode"
+                                    v-model="form.postalCode"
+                                    class="w-full p-2 border rounded"
+                                    type="text"
+                                >
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block font-medium" for="address">주소 (선택)</label>
+                                <input
+                                    id="address"
+                                    v-model="form.address"
+                                    class="w-full p-2 border rounded"
+                                    type="text"
+                                >
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block font-medium" for="addressDetail">상세 주소 (선택)</label>
+                                <input
+                                    id="addressDetail"
+                                    v-model="form.addressDetail"
+                                    class="w-full p-2 border rounded"
+                                    type="text"
+                                >
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <button
-                    class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700"
-                    type="submit"
-                >
-                    회원가입
-                </button>
+
+                <div class="text-center">
+                    <button
+                        type="submit"
+                        :disabled="isFetching"
+                        class="w-full p-3 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        <span v-if="!isFetching">회원가입</span>
+                        <span v-else>
+                            <svg class="animate-spin h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+
             </form>
         </main>
     </div>
